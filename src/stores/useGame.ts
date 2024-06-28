@@ -71,6 +71,15 @@ export const useGame = /* @__PURE__ */ create(
         });
       },
 
+      fly: () => {
+        set((state) => {
+          if (state.curAnimation !== state.animationSet.action4) {
+            return { curAnimation: state.animationSet.fly };
+          }
+          return {};
+        });
+      },
+
       jump: () => {
         set((state) => {
           return { curAnimation: state.animationSet.jump };
@@ -133,7 +142,9 @@ export const useGame = /* @__PURE__ */ create(
           if (
             state.curAnimation === state.animationSet.idle ||
             state.curAnimation === state.animationSet.walk ||
-            state.curAnimation === state.animationSet.run
+            state.curAnimation === state.animationSet.run ||
+            state.curAnimation === state.animationSet.fly
+
           ) {
             return { curAnimation: state.animationSet.action4 };
           }
@@ -187,6 +198,7 @@ export type AnimationSet = {
   idle?: string;
   walk?: string;
   run?: string;
+  fly?:string;
   jump?: string;
   jumpIdle?: string;
   jumpLand?: string;

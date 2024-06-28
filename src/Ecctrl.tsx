@@ -48,10 +48,10 @@ const getMovingDirection = (forward: boolean,
 
 const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
   children,
-  debug = false,
-  capsuleHalfHeight = 0.35,
-  capsuleRadius = 0.3,
-  floatHeight = 0.3,
+  debug = true,
+  capsuleHalfHeight = 0.01,
+  capsuleRadius = 0.01,
+  floatHeight = 0.01,
   characterInitDir = 0, // in rad
   followLight = false,
   disableFollowCam = false,
@@ -67,14 +67,13 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
   camZoomSpeed = 1,
   camCollision = true,
   camCollisionOffset = 0.7,
-  fixedCamRotMult = 1,
   // Follow light setups
   followLightPos = { x: 20, y: 30, z: 10 },
   // Base control setups
   maxVelLimit = 2.5,
   turnVelMultiplier = 0.2,
   turnSpeed = 15,
-  sprintMult = 2,
+  sprintMult = 3, //2 
   jumpVel = 4,
   jumpForceToGroundMult = 5,
   slopJumpMult = 0.25,
@@ -91,7 +90,7 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
   // Floating Ray setups
   rayOriginOffest = { x: 0, y: -capsuleHalfHeight, z: 0 },
   rayHitForgiveness = 0.1,
-  rayLength = capsuleRadius + 2,
+  rayLength = capsuleRadius + 0.1,
   rayDir = { x: 0, y: -1, z: 0 },
   floatingDis = capsuleRadius + floatHeight,
   springK = 1.2,
@@ -115,25 +114,26 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
   // Mode setups
   mode = null,
   // Controller setups
-  controllerKeys = { forward: 12, backward: 13, leftward: 14, rightward: 15, jump: 2, action1: 11, action2: 3, action3: 1, action4: 0 },
+  controllerKeys = { forward: 12, backward: 13, leftward: 14, rightward: 15, jump: 2, fly: 4, action1: 11, action2: 3, action3: 1, action4: 0 },
+  
+  //startPosition = [0, 5, 0], // Added startPosition prop
+
   // Other rigibody props from parent
   ...props
 }: EcctrlProps, ref) => {
   const characterRef = ref as RefObject<RapierRigidBody> || useRef<RapierRigidBody>()
   const characterModelRef = useRef<THREE.Group>();
   const characterModelIndicator: THREE.Object3D = useMemo(() => new THREE.Object3D(), [])
-  const defaultControllerKeys = { forward: 12, backward: 13, leftward: 14, rightward: 15, jump: 2, action1: 11, action2: 3, action3: 1, action4: 0 }
+  const defaultControllerKeys = { forward: 12, backward: 13, leftward: 14, rightward: 15, jump: 2, fly: 4, action1: 11, action2: 3, action3: 1, action4: 0 }
 
   /**
    * Mode setup
    */
   let isModePointToMove: boolean = false
-  let isModeFixedCamera: boolean = false
   const setCameraBased = useGame((state) => state.setCameraBased);
   const getCameraBased = useGame((state) => state.getCameraBased);
   if (mode) {
     if (mode === "PointToMove") isModePointToMove = true
-    if (mode === "FixedCamera") isModeFixedCamera = true
     if (mode === "CameraBasedMovement") setCameraBased(true)
   }
 
@@ -160,6 +160,8 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
   const walkAnimation = !animated ? null : useGame((state) => state.walk);
   const runAnimation = !animated ? null : useGame((state) => state.run);
   const jumpAnimation = !animated ? null : useGame((state) => state.jump);
+  const flyAnimation = !animated ? null : useGame((state) => state.fly);
+
   const jumpIdleAnimation = !animated
     ? null
     : useGame((state) => state.jumpIdle);
@@ -172,6 +174,7 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
   /**
    * Debug settings
    */
+
   let characterControlsDebug = null;
   let floatingRayDebug = null;
   let slopeRayDebug = null;
@@ -268,6 +271,7 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
       },
       { collapsed: true }
     );
+    
     // Apply debug values
     maxVelLimit = characterControlsDebug.maxVelLimit;
     turnVelMultiplier = characterControlsDebug.turnVelMultiplier;
@@ -489,7 +493,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
       releaseAllButtons()
     }
   }
-
   const handleSticks = (axes: readonly number[]) => {
     // Gamepad first joystick trigger the EcctrlJoystick event to move the character
     if (Math.abs(axes[0]) > 0 || Math.abs(axes[1]) > 0) {
@@ -503,6 +506,7 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
     }
     // Gamepad second joystick trigger the useFollowCam event to move the camera
     if (Math.abs(axes[2]) > 0 || Math.abs(axes[3]) > 0) {
+      // console.log(axes[2], axes[3]);
       joystickCamMove(axes[2], axes[3])
     }
   }
@@ -539,8 +543,8 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
     camMaxDis,
     camMinDis,
     camInitDir,
-    camMoveSpeed: isModeFixedCamera ? 0 : camMoveSpeed, // Disable camera move in fixed camera mode
-    camZoomSpeed: isModeFixedCamera ? 0 : camMoveSpeed, // Disable camera zoom in fixed camera mode
+    camMoveSpeed,
+    camZoomSpeed,
     camCollisionOffset
   };
 
@@ -1099,6 +1103,20 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
     pivot.position.lerp(pivotPosition, 1 - Math.exp(-camFollowMult * delta));
     !disableFollowCam && state.camera.lookAt(pivot.position);
 
+
+// Add a minimum Y position for the camera
+const minYPosition = 1.5; // Adjust this value based on your floor height
+pivotPosition.y = Math.max(pivotPosition.y, minYPosition);
+
+pivot.position.lerp(pivotPosition, 1 - Math.exp(-camFollowMult * delta));
+!disableFollowCam && state.camera.lookAt(pivot.position);
+
+// Ensure the camera itself doesn't go below the minimum Y position
+state.camera.position.y = Math.max(state.camera.position.y, minYPosition);
+
+
+
+
     /**
      * Ray casting detect if on ground
      */
@@ -1117,7 +1135,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
         collider.parent().userData && !(collider.parent().userData as userDataType).excludeEcctrlRay
       ))
     );
-
     /**Test shape ray */
     // rayHit = world.castShape(
     //   currentPos,
@@ -1371,18 +1388,7 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = ({
     isModePointToMove && pointToMove(delta, slopeAngle, movingObjectVelocity)
 
     /**
-     * Fixed camera feature
-     */
-    if (isModeFixedCamera) {
-      if (leftward) {
-        pivot.rotation.y += (run ? delta * sprintMult * fixedCamRotMult : delta * fixedCamRotMult)
-      } else if (rightward) {
-        pivot.rotation.y -= (run ? delta * sprintMult * fixedCamRotMult : delta * fixedCamRotMult)
-      }
-    }
-
-    /**
-     * Apply all the animations
+     * Apply all the animations // add fly here 
      */
     if (animated) {
       if (!forward && !backward && !leftward && !rightward && !jump &&
@@ -1481,7 +1487,6 @@ export interface EcctrlProps extends RigidBodyProps {
   camZoomSpeed?: number;
   camCollision?: boolean;
   camCollisionOffset?: number;
-  fixedCamRotMult?: number;
   // Follow light setups
   followLightPos?: { x: number, y: number, z: number };
   // Base control setups

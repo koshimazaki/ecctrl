@@ -7,6 +7,11 @@ export default function Slopes() {
   // Load models
   const slopes = useGLTF("./slopes.glb");
 
+  const sceneG = useGLTF("./NFC9C.glb");
+
+
+
+
   useEffect(() => {
     // Receive Shadows
     slopes.scene.traverse((child) => {
@@ -20,10 +25,16 @@ export default function Slopes() {
   }, []);
 
   return (
-    <group position={[-10, -1, 10]}>
+    <group position={[-10,-0.4, 10]}>
       <RigidBody type="fixed" colliders="trimesh" rotation={[0, Math.PI, 0]}>
         <primitive object={slopes.scene} />
       </RigidBody>
+
+      <RigidBody type="fixed" colliders="trimesh" rotation={[0, Math.PI, 0]
+      }position={[10, -0.5, 0]}>
+        <primitive object={sceneG.scene} />
+      </RigidBody>
+
       <Text
         rotation={[0, Math.PI, 0]}
         position={[3.5, 3, 0]}

@@ -1,6 +1,6 @@
 {
   "name": "ecctrl",
-  "version": "1.0.81",
+  "version": "1.0.80",
   "author": "Erdong Chen",
   "license": "MIT",
   "description": "A floating rigibody character controller for R3F",
@@ -31,8 +31,6 @@
   },
   "sideEffects": false,
   "devDependencies": {
-    "@react-three/drei": "^9.92.7",
-    "@react-three/fiber": "^8.15.13",
     "@types/react": "^18.2.28",
     "@types/react-dom": "^18.2.8",
     "@vitejs/plugin-react": "^4.1.0",
@@ -41,17 +39,27 @@
     "vite": "^4.5.3"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.1.1",
     "@react-spring/three": "^9.7.3",
-    "leva": "^0.9.34",
+    "@react-three/drei": "^9.107.2",
+    "@react-three/fiber": "^8.16.8",
+    "@react-three/rapier": "^1.4.0",
+    "lamina": "^1.1.20",
+    "leva": "^0.9.35",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-error-boundary": "^4.0.13",
+    "react-merge-refs": "^2.1.1",
+    "three": "^0.165.0",
     "zustand": "^4.4.7"
   },
   "peerDependencies": {
     "@react-three/drei": ">=9.0",
     "@react-three/fiber": ">=8.0",
-    "@react-three/rapier": ">=1.4.0",
+    "@react-three/rapier": "^1.4.0",
     "react": ">=18",
     "react-dom": ">=18.0",
-    "three": ">=0.153"
+    "three": "^0.165.0"
   },
   "scripts": {
     "dev": "vite",

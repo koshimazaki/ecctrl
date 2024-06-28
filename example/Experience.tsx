@@ -1,44 +1,113 @@
-import { Grid, KeyboardControls } from "@react-three/drei";
-import { Perf } from "r3f-perf";
+import React, { Suspense, useEffect, useRef } from "react";
+import { useThree, useFrame } from "@react-three/fiber";
+import { useProgress, KeyboardControls, Environment, PerspectiveCamera } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
+import { useControls } from "leva";
 import Ecctrl from "../src/Ecctrl";
+import CharacterModel from "./CharacterModel";
+import { Map } from "./Maps";
 import Floor from "./Floor";
 import Lights from "./Lights";
-import Steps from "./Steps";
-import Slopes from "./Slopes";
-import RoughPlane from "./RoughPlane";
-import RigidObjects from "./RigidObjects";
 import FloatingPlatform from "./FloatingPlatform";
 import DynamicPlatforms from "./DynamicPlatforms";
+import { Perf } from "r3f-perf";
 import ShotCube from "./ShotCube";
-import { useControls } from "leva";
-import CharacterModel from "./CharacterModel";
-import React, { useEffect, useState } from "react";
+import { GlowingShapes } from "./GlowingShapes";
+import SkyboxWithStars from "./Stars"; // Import the new SkyboxWithStars component
+
+
+const characterModels = {
+  Pastel: "/models/PastelAnim.glb",
+  Neon: "/models/NeonAnim2.glb",
+  OG: "/models/OGanim.glb",
+};
+
+const maps = {
+  NFC_Lisbon: { scale: 1, position: [6, -1, -20] },
+  Dubai3: { scale: 3, position: [6, -0.99, -20] },
+  Dubai2: { scale: 3, position: [6, -0.99, -20] },
+  castle_on_hills: { scale: 10, position: [-6, -6, -40] },
+  Lisbon: { scale: 1, position: [0, -0.25, -25] },
+  city_scene_tokyo: { scale: 2, position: [0, 0.2, -3.5] },
+  Candyland: { scale: 1, position: [-14, -0.24, -14] },
+  medieval_fantasy_book: { scale: 1, position: [-4, 2, -6] },
+};
 
 export default function Experience() {
-  /**
-   * Delay physics activate
-   */
-  const [pausedPhysics, setPausedPhysics] = useState(true);
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setPausedPhysics(false);
-    }, 500);
+  const { scene } = useThree();
+  const cameraRef = useRef();
 
-    return () => clearTimeout(timeout);
-  }, []);
-
-  /**
-   * Debug settings
-   */
-  const { physics, disableFollowCam } = useControls("World Settings", {
-    physics: false,
-    disableFollowCam: false,
+  const { selectedCharacter, selectedMap, showShapes } = useControls("Scene Settings", {
+    selectedCharacter: {
+      value: "Pastel",
+      options: Object.keys(characterModels),
+    },
+    selectedMap: {
+      value: "Candyland",
+      options: Object.keys(maps),
+    },
+    showShapes: true,
   });
 
-  /**
-   * Keyboard control preset
-   */
+  const shapeSettings = useControls("Shape Settings", {
+    spherePosition: { value: [1, 0.2, 18], step: 0.3 },
+    cubePosition: { value: [-5, 1, 25], step: 0.3 },
+    tetrahedronPosition: { value: [3, 0.2, 25], step: 0.6 },
+  });
+
+  const shapes = [
+    {
+      type: 'sphere',
+      color: 'yellow',
+      amount: 150,
+      emissive: 'pink',
+      glow: 'blue',
+      size:0.5,
+      rotationSpeed: 0.0001,
+      position: shapeSettings.spherePosition,
+      thickness: 2,
+      metalness: 0.2,
+      envMapIntensity: 5,
+      transmission: 2,
+      resolution: 256,
+      samples: 16,
+     
+    },
+    {
+      type: 'cube',
+      color: 'pink',
+      amount: 20,
+      emissive: 'blue',
+      glow: 'violet',
+      size: 1.5,
+      rotationSpeed: 0.0004,
+      position: shapeSettings.cubePosition,
+      thickness: 1,
+      metalness: 0.2,
+      envMapIntensity: 5,
+      transmission: 1.4,
+      resolution: 128,
+      samples: 16
+    },
+    {
+      type: 'tetrahedron',
+      color: 'lightgreen',
+      amount: 50,
+      emissive: 'green',
+      glow: 'blue',
+      size: 1,
+      rotationSpeed: 0.001,
+      position: shapeSettings.tetrahedronPosition,
+      thickness: 1,
+      metalness: 0.2,
+      envMapIntensity: 5,
+      transmission: 1.4,
+      resolution: 128,
+      samples: 16
+    },
+  ];
+
+  
   const keyboardMap = [
     { name: "forward", keys: ["ArrowUp", "KeyW"] },
     { name: "backward", keys: ["ArrowDown", "KeyS"] },
@@ -52,65 +121,60 @@ export default function Experience() {
     { name: "action4", keys: ["KeyF"] },
   ];
 
+  // add fly 
+
+  useEffect(() => {
+    console.log("Scene loaded:", scene);
+    console.log("Selected character:", selectedCharacter);
+    console.log("Selected map:", selectedMap);
+  }, [scene, selectedCharacter, selectedMap]);
+
   return (
     <>
-      <Perf position="top-left" minimal />
+      <Perf position="bottom-left" />
+      <Suspense fallback={null}>
+        <Environment preset="city" />
+        <Lights />
+        <SkyboxWithStars />  {/* Add the SkyboxWithStars component here */}
 
-      <Grid
-        args={[300, 300]}
-        sectionColor={"lightgray"}
-        cellColor={"gray"}
-        position={[0, -0.99, 0]}
-        userData={{ camExcludeCollision: true }} // this won't be collide by camera ray
-      />
+        <Physics gravity={[0, -9.81, 0]}>
+          <Map
+            key={selectedMap}
+            scale={maps[selectedMap].scale}
+            position={maps[selectedMap].position}
+            model={`models/${selectedMap}.glb`}
+          />
+          <KeyboardControls map={keyboardMap}>
+            <Ecctrl
+              animated
+              followLight
+              capsuleHalfHeight={0.35}
+              capsuleRadius={0.3}
+              floatHeight={0.3}
+              characterInitDir={0}
+              camInitDis={-5}
+              camMaxDis={-7}
+              camMinDis={-0.7}
+              position={[0, 5, 0]}
+              camera={cameraRef}
+            >
+              <CharacterModel 
+                key={selectedCharacter}
+                modelUrl={characterModels[selectedCharacter]} 
+                scale={[0.4, 0.4, 0.4]} 
+                position={[0, -0.8, 0]} 
+                receiveShadow
+                castShadow
+              />
+            </Ecctrl>
+          </KeyboardControls>
 
-      <Lights />
-
-      <Physics debug={physics} timeStep="vary" paused={pausedPhysics}>
-        {/* Keyboard preset */}
-        <KeyboardControls map={keyboardMap}>
-          {/* Character Control */}
-          <Ecctrl
-            debug
-            animated
-            followLight
-            springK={2}
-            dampingC={0.2}
-            autoBalanceSpringK={1.2}
-            autoBalanceDampingC={0.04}
-            autoBalanceSpringOnY={0.7}
-            autoBalanceDampingOnY={0.05}
-            disableFollowCam={disableFollowCam}
-          >
-            {/* Replace your model here */}
-            <CharacterModel />
-          </Ecctrl>
-        </KeyboardControls>
-
-        {/* Rough plan */}
-        <RoughPlane />
-
-        {/* Slopes and stairs */}
-        <Slopes />
-
-        {/* Small steps */}
-        <Steps />
-
-        {/* Rigid body objects */}
-        <RigidObjects />
-
-        {/* Floating platform */}
-        <FloatingPlatform />
-
-        {/* Dynamic platforms */}
-        <DynamicPlatforms />
-
-        {/* Floor */}
-        <Floor />
-
-        {/* Shoting cubes */}
-        <ShotCube />
-      </Physics >
+          <Floor />
+          <ShotCube />
+          {showShapes && <GlowingShapes shapes={shapes} />}
+        </Physics>
+      </Suspense>
     </>
   );
 }
+
