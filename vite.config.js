@@ -12,7 +12,11 @@ const dev = defineConfig({
   base: "./",
   server: {
     host: true,
-    open: !isCodeSandbox, // Open if it's not a CodeSandbox
+    open: !isCodeSandbox,
+    port: 3000,
+  },
+  resolve: {
+    extensions: ['.js', '.jsx', '.ts', '.tsx']
   },
 });
 
@@ -24,7 +28,7 @@ const build = defineConfig({
     target: "es2018",
     lib: {
       formats: ["cjs", "es"],
-      entry: "src/Ecctrl.tsx",
+      entry: path.resolve(__dirname, "src/Ecctrl.tsx"),
       fileName: "[name]",
     },
     rollupOptions: {
@@ -33,6 +37,9 @@ const build = defineConfig({
         sourcemapExcludeSources: true,
       },
     },
+  },
+  resolve: {
+    extensions: ['.js', '.jsx', '.ts', '.tsx']
   },
 });
 
